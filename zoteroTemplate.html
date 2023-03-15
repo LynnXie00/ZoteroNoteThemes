@@ -1,0 +1,156 @@
+<h1>${topItem.getField("title")}</h1>
+<h2 style="color:red; background-color: #efe3da;">💡 Meta Data</h2>
+<table>
+	<tr>
+		<th style="background-color:#dbeedd;">
+			<p style="text-align: right">Title </p>
+		</th>
+		<td style="background-color:#dbeedd;">
+            ${topItem.getField('title')}
+        </td>
+	</tr>
+	<tr>
+		<th style="background-color:#f3faf4;">
+			<p style="text-align: right">Journal </p>
+		</th>
+		<td style="background-color:#f3faf4;">
+            ${topItem.getField('publicationTitle')}
+        </td>
+	</tr>
+	<tr>
+		<th style="background-color:#dbeedd;">
+			<p style="text-align: right">1<sup>st</sup> Author </p>
+		</th>
+		<td style="background-color:#dbeedd;">
+            ${topItem.getField('firstCreator')}
+        </td>
+	</tr>
+	<tr>
+		<th style="background-color:#dbeedd;">
+			<p style="text-align: right">Pub. date </p>
+		</th>
+		<td style="background-color:#dbeedd;">
+            ${topItem.getField('date')}
+        </td>
+	</tr>
+	<tr>
+		<th style="background-color:#f3faf4;">
+			<p style="text-align: right">DOI </p>
+		</th>
+		<td style="background-color:#f3faf4;">
+			<a href="https://doi.org/${topItem.getField('DOI')}">${topItem.getField('DOI')}</a>
+		</td>
+	</tr>
+	<tr>
+		<th style="background-color:#dbeedd;">
+			<p style="text-align: right">Citation Key</p>
+		</th>
+		<td style="background-color:#dbeedd;">
+            ${topItem.citationKey ? topItem.citationKey : ""}
+        </td>
+	</tr>
+	<tr>
+		<th style="background-color:#f3faf4;">
+			<p style="text-align: right">PDF Link</p>
+		</th>
+		<td style="background-color:#f3faf4;">
+             ${((topItem) => 
+			 {const getPDFLink = (_item) => {
+			  let libraryID = _item.libraryID;
+			  let library = Zotero.Libraries.get(libraryID);
+			  let itemKey = _item.key;
+			  let itemLink = "";
+			  if (library.libraryType === "user") {
+				itemLink = `zotero://open-pdf/library/items/${itemKey}`;
+			  } else if (library.libraryType === "group") {
+				itemLink = `zotero://open-pdf/groups/${library.id}/items/${itemKey}`;
+			  }
+				return `<a href="${itemLink}">${_item.getFilename()}</a>`;
+				};
+				return Zotero.Items.get(topItem.getAttachments())
+				  .filter((i) => i.isPDFAttachment())
+				  .map((i) => getPDFLink(i))
+				  .join("\n");
+			  })(topItem)}
+        </td>
+	</tr>
+</table>
+<br>
+
+${await new Promise(async (r) => {
+
+    
+  async function getAnnotation(item) {
+    try {
+      if (!item || !item.isAnnotation()) {
+        return null;
+      }
+      let json = await Zotero.Annotations.toJSON(item);
+      json.id = item.key;
+      delete json.key;
+      for (let key in json) {
+        json[key] = json[key] || "";
+      }
+      json.tags = json.tags || [];
+      return json;
+    } catch (e) {
+      Zotero.logError(e);
+      return null;
+    }
+  }
+
+  async function getAnnotationsByColor(_item, colorFilter) {
+    const annots = _item.getAnnotations().filter(colorFilter);
+    if (annots.length === 0) {
+      return {
+        html: "",
+      };
+    }
+    let annotations = [];
+    for (let annot of annots) {
+      const annotJson = await getAnnotation(annot);
+      annotJson.attachmentItemID = _item.id;
+      annotations.push(annotJson);
+    }
+
+    if (!editor) {
+      alert("No active note editor detected. Please open workspace.");
+      return r("");
+    }
+    await editor.importImages(annotations);
+    return Zotero.EditorInstanceUtilities.serializeAnnotations(annotations);
+  }
+
+  const attachments = Zotero.Items.get(topItem.getAttachments()).filter((i) =>
+    i.isPDFAttachment()
+  );
+  let res = "";
+  const colors = ["#ff6666", "#5fb236", "#2ea8e5", "#a28ae5","0xE56EEE"];
+  const colorNames = [ "⁉️Attention!", "⭐Hypotheses", "📚Theory", "⛏️Method","📃Results"];
+  for (let attachment of attachments) {
+    for (let i in colors) {
+      const renderedAnnotations = (
+        await getAnnotationsByColor(
+          attachment,
+          (_annot) => _annot.annotationColor === colors[i]
+        )
+      ).html;
+      if (renderedAnnotations) {
+        res += `<h2><p style="background-color:${colors[i]};">${colorNames[i]}</p></h2>
+${renderedAnnotations}`;
+      }
+    }
+    const renderedAnnotations = (
+      await getAnnotationsByColor(
+        attachment,
+        (_annot) => !colors.includes(_annot.annotationColor)
+      )
+    ).html;
+    if (renderedAnnotations) {
+      res += `<h2><p>✏️Other Annotations</p></h2>
+${renderedAnnotations}`;
+    }
+  }
+  r(res);
+})}
+
