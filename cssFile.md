@@ -22,7 +22,7 @@ padding-bottom: none;
 border-bottom: none;
 font-family: "Georgia";
 text-transform: capitalize;
-margin-left: 0.5em;
+margin-left: 1em;
 }
 
 h3 {
@@ -31,7 +31,7 @@ font-family: "Georgia";
 font-style: italic;
 text-transform: capitalize;
 font-weight: bold;
-margin-left: 1em;
+margin-left: 2em;
 }
 
 
@@ -42,7 +42,7 @@ font-style: underline;
 text-transform: capitalize;
 text-decoration: underline;
 font-weight: bold;
-margin-left: 1.5em;
+margin-left: 3em;
 }
 
 h5{
@@ -51,7 +51,7 @@ font-family: "Georgia";
 font-style: underline;
 text-transform: capitalize;
 display: list-item; 
-margin-left: 2em; 
+margin-left: 4em; 
 font-weight: bold;
 }
 
